@@ -55,9 +55,8 @@ const uint8_t hid_device_mouse_report_descriptor[] = {
     HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),     /*!< 选择通用桌面控制 */
     HID_USAGE(HID_USAGE_DESKTOP_MOUSE),         /*!< 选择鼠标 */
     HID_COLLECTION(HID_COLLECTION_APPLICATION), /*!< 创建一个功能集合 */
-    HID_REPORT_ID(HID_ITF_PROTOCOL_MOUSE)
-        HID_USAGE(HID_USAGE_DESKTOP_POINTER), /*!< 选择指针*/
-    HID_COLLECTION(HID_COLLECTION_PHYSICAL),  /*!< 创建数据集合 */
+    HID_USAGE(HID_USAGE_DESKTOP_POINTER),       /*!< 选择指针*/
+    HID_COLLECTION(HID_COLLECTION_PHYSICAL),    /*!< 创建数据集合 */
     // 设置按键
     HID_USAGE_PAGE(HID_USAGE_PAGE_BUTTON), /*!< 开始设置鼠标上的按键 */
     HID_USAGE_MIN(1),
@@ -126,5 +125,5 @@ const uint8_t hid_device_mouse_configuration_descriptor[] = {
 bool hid_device_mouse_send(int x, int y)
 {
     int8_t data[3] = {0x00, x, y};
-    return tud_hid_report(HID_ITF_PROTOCOL_MOUSE, data, sizeof(data));
+    return tud_hid_report(HID_ITF_PROTOCOL_NONE, data, sizeof(data));
 }
