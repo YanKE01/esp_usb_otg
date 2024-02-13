@@ -9,11 +9,31 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "esp_check.h"
 #include "hid_device_mouse.h"
 #include "hid_device_audio_ctrl.h"
+#include "st7789.h"
+#include "esp_lvgl_port.h"
+#include "demos/benchmark/lv_demo_benchmark.h"
+#include "ui.h"
 
 #define APP_BUTTON (GPIO_NUM_0) // Use BOOT signal by default
 static const char *TAG = "example";
+lv_disp_t *lvgl_disp = NULL;
+
+lcd_config_t lcd_config = {
+    .spi_host_device = SPI3_HOST,
+    .dc = GPIO_NUM_4,
+    .cs = GPIO_NUM_5,
+    .sclk = GPIO_NUM_6,
+    .mosi = GPIO_NUM_7,
+    .rst = GPIO_NUM_8,
+    .lcd_bits_per_pixel = 16,
+    .lcd_color_space = ESP_LCD_COLOR_SPACE_BGR,
+    .lcd_height_res = 240,
+    .lcd_vertical_res = 240,
+    .lcd_draw_buffer_height = 50,
+};
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
 {
@@ -33,6 +53,41 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
 
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
 {
+}
+
+esp_err_t lvgl_init()
+{
+    const lvgl_port_cfg_t lvgl_cfg = {
+        .task_priority = 4,       /* LVGL task priority */
+        .task_stack = 4096,       /* LVGL task stack size */
+        .task_affinity = -1,      /* LVGL task pinned to core (-1 is no affinity) */
+        .task_max_sleep_ms = 500, /* Maximum sleep in LVGL task */
+        .timer_period_ms = 5      /* LVGL timer tick period in ms */
+    };
+    ESP_RETURN_ON_ERROR(lvgl_port_init(&lvgl_cfg), TAG, "LVGL port initialization failed");
+
+    /* Add LCD screen */
+    ESP_LOGI(TAG, "Add LCD screen");
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = lcd_io,
+        .panel_handle = lcd_panel,
+        .buffer_size = lcd_config.lcd_height_res * lcd_config.lcd_draw_buffer_height * sizeof(uint16_t),
+        .double_buffer = 1,
+        .hres = lcd_config.lcd_height_res,
+        .vres = lcd_config.lcd_vertical_res,
+        .monochrome = false,
+        /* Rotation values must be same as used in esp_lcd for initial settings of the screen */
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = false,
+            .mirror_y = false,
+        },
+        .flags = {
+            .buff_dma = true,
+        }};
+
+    lvgl_disp = lvgl_port_add_disp(&disp_cfg);
+    return ESP_OK;
 }
 
 void app_main(void)
@@ -59,17 +114,21 @@ void app_main(void)
     ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
     ESP_LOGI(TAG, "USB initialization DONE");
 
-    while (1)
-    {
-        if (tud_mounted())
-        {
-            static bool send_hid_data = true;
-            if (send_hid_data)
-            {
-                ESP_LOGI(TAG,"R:%d",hid_device_audio_test());
-            }
-            send_hid_data = !gpio_get_level(APP_BUTTON);
-        }
-        vTaskDelay(pdMS_TO_TICKS(300));
-    }
+    lcd_init(lcd_config);
+    lvgl_init();
+
+    ui_init();
+    // while (1)
+    // {
+    //     if (tud_mounted())
+    //     {
+    //         static bool send_hid_data = true;
+    //         if (send_hid_data)
+    //         {
+    //             ESP_LOGI(TAG, "R:%d", hid_device_audio_test());
+    //         }
+    //         send_hid_data = !gpio_get_level(APP_BUTTON);
+    //     }
+    //     vTaskDelay(pdMS_TO_TICKS(300));
+    // }
 }
