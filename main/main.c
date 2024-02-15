@@ -12,27 +12,17 @@
 #include "esp_check.h"
 #include "hid_device_mouse.h"
 #include "hid_device_audio_ctrl.h"
-#include "st7789.h"
-#include "esp_lvgl_port.h"
-#include "demos/benchmark/lv_demo_benchmark.h"
-#include "ui.h"
+#include "sd_card.h"
 
 #define APP_BUTTON (GPIO_NUM_0) // Use BOOT signal by default
 static const char *TAG = "example";
-lv_disp_t *lvgl_disp = NULL;
-
-lcd_config_t lcd_config = {
-    .spi_host_device = SPI3_HOST,
-    .dc = GPIO_NUM_4,
-    .cs = GPIO_NUM_5,
-    .sclk = GPIO_NUM_6,
-    .mosi = GPIO_NUM_7,
-    .rst = GPIO_NUM_8,
-    .lcd_bits_per_pixel = 16,
-    .lcd_color_space = LCD_RGB_ELEMENT_ORDER_RGB,
-    .lcd_height_res = 240,
-    .lcd_vertical_res = 240,
-    .lcd_draw_buffer_height = 50,
+sd_card_config_t sd_card_config = {
+    .clk = GPIO_NUM_36,
+    .cmd = GPIO_NUM_35,
+    .d0 = GPIO_NUM_37,
+    .d1 = GPIO_NUM_38,
+    .d2 = GPIO_NUM_33,
+    .d3 = GPIO_NUM_34,
 };
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
@@ -114,8 +104,19 @@ void app_main(void)
     ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
     ESP_LOGI(TAG, "USB initialization DONE");
 
-    lcd_init(lcd_config);
-    lcd_fullclean(lcd_panel, lcd_config, rgb565(0, 0, 0));
-    lvgl_init();
-    ui_init();
+    ESP_ERROR_CHECK(sd_card_init(sd_card_config, "/sdcard"));
+
+    while (1)
+    {
+        if (tud_mounted())
+        {
+            static bool send_hid_data = true;
+            if (send_hid_data)
+            {
+                ESP_LOGI(TAG, "R:%d", hid_device_audio_test());
+            }
+            send_hid_data = !gpio_get_level(APP_BUTTON);
+        }
+        vTaskDelay(pdMS_TO_TICKS(300));
+    }
 }
