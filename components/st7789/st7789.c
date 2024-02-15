@@ -2,6 +2,7 @@
 #include "st7789.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "string.h"
 
 static const char *TAG = "LCD";
 
@@ -46,7 +47,7 @@ esp_err_t lcd_init(lcd_config_t lcd_config)
     ESP_LOGI(TAG, "Install LCD driver");
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = lcd_config.rst,
-        .color_space = LCD_RGB_ELEMENT_ORDER_RGB,
+        .color_space = lcd_config.lcd_color_space,
         .bits_per_pixel = 16,
     };
     ESP_GOTO_ON_ERROR(esp_lcd_new_panel_st7789(lcd_io, &panel_config, &lcd_panel), err, TAG, "New panel failed");
@@ -55,7 +56,7 @@ esp_err_t lcd_init(lcd_config_t lcd_config)
     esp_lcd_panel_init(lcd_panel);
     esp_lcd_panel_mirror(lcd_panel, false, false);
     esp_lcd_panel_disp_on_off(lcd_panel, true);
-    esp_lcd_panel_invert_color(lcd_panel,true);
+    esp_lcd_panel_invert_color(lcd_panel, true);
 
     ESP_ERROR_CHECK(gpio_set_level(lcd_config.backlight, 1));
 
@@ -72,4 +73,20 @@ err:
     }
     spi_bus_free(lcd_config.spi_host_device);
     return ret;
+}
+
+void lcd_fullclean(esp_lcd_panel_handle_t lcd_pandel, lcd_config_t lcd_config, uint16_t color)
+{
+    uint16_t *buffer = heap_caps_malloc(lcd_config.lcd_height_res * sizeof(uint16_t), MALLOC_CAP_INTERNAL);
+
+    for (int i = 0; i < lcd_config.lcd_height_res; i++)
+    {
+        buffer[i] = swap_hex(color);
+    }
+    for (int i = 0; i < lcd_config.lcd_vertical_res; i++)
+    {
+        esp_lcd_panel_draw_bitmap(lcd_pandel, 0, i, lcd_config.lcd_height_res + 1, i + 1, buffer);
+    }
+
+    heap_caps_free(buffer);
 }

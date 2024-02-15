@@ -29,7 +29,7 @@ lcd_config_t lcd_config = {
     .mosi = GPIO_NUM_7,
     .rst = GPIO_NUM_8,
     .lcd_bits_per_pixel = 16,
-    .lcd_color_space = ESP_LCD_COLOR_SPACE_BGR,
+    .lcd_color_space = LCD_RGB_ELEMENT_ORDER_RGB,
     .lcd_height_res = 240,
     .lcd_vertical_res = 240,
     .lcd_draw_buffer_height = 50,
@@ -115,20 +115,7 @@ void app_main(void)
     ESP_LOGI(TAG, "USB initialization DONE");
 
     lcd_init(lcd_config);
+    lcd_fullclean(lcd_panel, lcd_config, rgb565(0, 0, 0));
     lvgl_init();
-
     ui_init();
-    // while (1)
-    // {
-    //     if (tud_mounted())
-    //     {
-    //         static bool send_hid_data = true;
-    //         if (send_hid_data)
-    //         {
-    //             ESP_LOGI(TAG, "R:%d", hid_device_audio_test());
-    //         }
-    //         send_hid_data = !gpio_get_level(APP_BUTTON);
-    //     }
-    //     vTaskDelay(pdMS_TO_TICKS(300));
-    // }
 }
