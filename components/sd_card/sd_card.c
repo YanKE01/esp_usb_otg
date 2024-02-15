@@ -6,7 +6,7 @@
 
 static const char *TAG = "SD_CARD";
 
-static esp_err_t sd_read_file(const char *path)
+esp_err_t sd_read_file(const char *path)
 {
     ESP_LOGI(TAG, "Reading file %s", path);
     FILE *f = fopen(path, "r");
