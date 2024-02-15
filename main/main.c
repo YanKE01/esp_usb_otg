@@ -9,6 +9,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "esp_check.h"
 #include "hid_device_mouse.h"
 #include "hid_device_audio_ctrl.h"
 #include "sd_card.h"
@@ -42,6 +43,41 @@ uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_t
 
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
 {
+}
+
+esp_err_t lvgl_init()
+{
+    const lvgl_port_cfg_t lvgl_cfg = {
+        .task_priority = 4,       /* LVGL task priority */
+        .task_stack = 4096,       /* LVGL task stack size */
+        .task_affinity = -1,      /* LVGL task pinned to core (-1 is no affinity) */
+        .task_max_sleep_ms = 500, /* Maximum sleep in LVGL task */
+        .timer_period_ms = 5      /* LVGL timer tick period in ms */
+    };
+    ESP_RETURN_ON_ERROR(lvgl_port_init(&lvgl_cfg), TAG, "LVGL port initialization failed");
+
+    /* Add LCD screen */
+    ESP_LOGI(TAG, "Add LCD screen");
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = lcd_io,
+        .panel_handle = lcd_panel,
+        .buffer_size = lcd_config.lcd_height_res * lcd_config.lcd_draw_buffer_height * sizeof(uint16_t),
+        .double_buffer = 1,
+        .hres = lcd_config.lcd_height_res,
+        .vres = lcd_config.lcd_vertical_res,
+        .monochrome = false,
+        /* Rotation values must be same as used in esp_lcd for initial settings of the screen */
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = false,
+            .mirror_y = false,
+        },
+        .flags = {
+            .buff_dma = true,
+        }};
+
+    lvgl_disp = lvgl_port_add_disp(&disp_cfg);
+    return ESP_OK;
 }
 
 void app_main(void)
