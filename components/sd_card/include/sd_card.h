@@ -15,3 +15,4 @@ typedef struct
 } sd_card_config_t;
 
 esp_err_t sd_card_init(sd_card_config_t config, char *mount_path);
+esp_err_t sd_read_file(const char *path);
