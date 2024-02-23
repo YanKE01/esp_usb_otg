@@ -16,10 +16,12 @@
 #include "st7789.h"
 #include "esp_lvgl_port.h"
 #include "ui.h"
-#include "tinyusb.h"
-#include "tusb_msc_storage.h"
+#include "usb_msc.h"
+#include "lcdfont.h"
 
 #define APP_BUTTON (GPIO_NUM_0) // Use BOOT signal by default
+// #define USE_HID
+
 static const char *TAG = "example";
 lv_disp_t *lvgl_disp = NULL;
 
@@ -48,7 +50,7 @@ sd_card_config_t sd_card_config = {
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
 {
-    return hid_device_audio_ctrl_report_descriptor;
+    return NULL;
 }
 
 uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen)
@@ -101,6 +103,50 @@ esp_err_t lvgl_init()
     return ESP_OK;
 }
 
+uint16_t POINT_COLOR = swap_hex(rgb565(255, 255, 255)); // 画笔颜色
+uint16_t BACK_COLOR = swap_hex(rgb565(0, 0, 0));        // 背景色
+
+void lcd_draw_point(int x, int y)
+{
+    esp_lcd_panel_draw_bitmap(lcd_panel, x, y, x + 1, y + 1, &POINT_COLOR);
+}
+
+void LCD_ShowChar(uint8_t x, uint8_t y, uint8_t chr, uint8_t size, uint8_t mode)
+{
+    uint8_t temp, t, t1;
+    uint8_t y0 = y;
+    uint8_t *pfont = 0;
+    /* 得到字体一个字符对应点阵集所占的字节数 */
+    uint8_t csize = (size / 8 + ((size % 8) ? 1 : 0)) * (size / 2);
+    chr = chr - ' '; /* 得到偏移后的值,因为字库是从空格开始存储的,第一个字符是空格 */
+
+    pfont = (uint8_t *)ascii_1608[chr];
+
+    for (t = 0; t < csize; t++)
+    {
+        temp = pfont[t];
+        for (t1 = 0; t1 < 8; t1++)
+        {
+            if (temp & 0x80)
+            {
+                //lcd_draw_point(x, y);
+            }
+            else
+            {
+                lcd_draw_point(x, y);
+            }
+            temp <<= 1;
+            y++;
+            if ((y - y0) == size)
+            {
+                y = y0;
+                x++;
+                break;
+            }
+        }
+    }
+}
+
 void app_main(void)
 {
     // Initialize button that will trigger HID reports
@@ -113,30 +159,28 @@ void app_main(void)
     };
     ESP_ERROR_CHECK(gpio_config(&boot_button_config));
 
-    ESP_LOGI(TAG, "USB initialization");
-    const tinyusb_config_t tusb_cfg = {
-        .device_descriptor = &hid_device_audio_ctrl_device_descriptor,
-        .string_descriptor = hid_device_audio_ctrl_string_descriptor,
-        .string_descriptor_count = sizeof(hid_device_audio_ctrl_string_descriptor) / sizeof(hid_device_audio_ctrl_string_descriptor[0]),
-        .external_phy = false,
-        .configuration_descriptor = hid_device_audio_ctrl_configuration_descriptor,
-    };
+    ESP_ERROR_CHECK(lcd_init(lcd_config));
+    lcd_fullclean(lcd_panel, lcd_config, rgb565(0, 0, 0));
 
-    ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
-    ESP_LOGI(TAG, "USB initialization DONE");
+    LCD_ShowChar(100, 100, 'a', 16, 1);
+    // uint16_t color[12][6];
+    // for (int i = 0; i < 12; i++)
+    // {
+    //     for (int j = 0; j < 6; j++)
+    //     {
+    //         if (j == 3)
+    //         {
+    //             color[i][j] = swap_hex(rgb565(0, 0, 0));
+    //         }
+    //         else
+    //         {
+    //             color[i][j] = swap_hex(rgb565(255, 255, 255));
+    //         }
+    //     }
+    // }
 
-    while (1)
-    {
-        if (tud_mounted())
-        {
-            static bool send_hid_data = true;
-            if (send_hid_data)
-            {
-                hid_device_audio_ctrl_test();
-                ESP_LOGI(TAG, "Boot0 Set");
-            }
-            send_hid_data = !gpio_get_level(APP_BUTTON);
-        }
-        vTaskDelay(pdMS_TO_TICKS(300));
-    }
+    // for (int i = 0; i < 12; i++)
+    // {
+    //     esp_lcd_panel_draw_bitmap(lcd_panel, 20 + i, 50, 20 + i + 1, 50 + 6 + 1, &color[i]);
+    // }
 }

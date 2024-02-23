@@ -5,6 +5,7 @@
 #include "dirent.h"
 
 static const char *TAG = "SD_CARD";
+sdmmc_card_t *card = NULL;
 
 esp_err_t sd_read_file(const char *path)
 {
@@ -40,7 +41,6 @@ esp_err_t sd_card_init(sd_card_config_t config, char *mount_path)
     };
 
     ESP_LOGI(TAG, "Initializing sd card");
-    sdmmc_card_t *card;
     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
     sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
     slot_config.width = 4;

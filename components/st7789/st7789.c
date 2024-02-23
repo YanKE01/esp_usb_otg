@@ -11,7 +11,7 @@ esp_lcd_panel_handle_t lcd_panel = NULL;
 
 esp_err_t lcd_init(lcd_config_t lcd_config)
 {
-    esp_err_t ret = ESP_FAIL;
+    esp_err_t ret=ESP_OK;
     /*!< backlight */
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
@@ -60,7 +60,7 @@ esp_err_t lcd_init(lcd_config_t lcd_config)
 
     ESP_ERROR_CHECK(gpio_set_level(lcd_config.backlight, 1));
 
-    return ret;
+    return ESP_OK;
 
 err:
     if (lcd_panel)
@@ -72,7 +72,7 @@ err:
         esp_lcd_panel_io_del(lcd_io);
     }
     spi_bus_free(lcd_config.spi_host_device);
-    return ret;
+    return ESP_FAIL;
 }
 
 void lcd_fullclean(esp_lcd_panel_handle_t lcd_pandel, lcd_config_t lcd_config, uint16_t color)
