@@ -1,5 +1,34 @@
 #include "hid_device_mouse.h"
 #include "class/hid/hid_device.h"
+#include "esp_log.h"
+
+static const char *TAG = "Hid Mouse";
+
+const char *hid_device_mouse_string_descriptor[] = {
+    // array of pointer to string descriptors
+    (char[]){0x09, 0x04}, /*!< support language is english */
+    "TinyUSB",            /*!< manufacturer */
+    "TinyUSB Device",     /*!< product */
+    "123456",             /*!< chip id */
+    "Example HID interface",
+};
+
+tusb_desc_device_t hid_device_mouse_device_descriptor = {
+    .bLength = sizeof(hid_device_mouse_device_descriptor), // 设备描述符的字节大小数
+    .bDescriptorType = 0x01,                               // DEVICE
+    .bcdUSB = 0x0200,                                      // USB2.0
+    .bDeviceClass = 0x00,                                  // Class代码 0x00
+    .bDeviceSubClass = 0x00,                               // Subclass代码 0x00
+    .bDeviceProtocol = 0x00,                               // Protocol代码 0x000, class、subclass与protocol组成了base class
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,             // 端点0的最大包大小
+    .idVendor = 0x303A,                                    // 厂商编号
+    .idProduct = 0x4002,                                   // 设备变换
+    .bcdDevice = 0x100,                                    // 设备出厂编号
+    .iManufacturer = 0x01,                                 // 厂商字符串索引，字符串描述符中的第一个（个数从0开始）
+    .iProduct = 0x02,                                      // 产品字符串索引，字符串描述符中的第二个
+    .iSerialNumber = 0x03,                                 // 序列号字符串索引，字符串索引中的第三个
+    .bNumConfigurations = 0x01,                            // 配置描述符就1个
+};
 
 void hid_device_mouse_draw_square_next_delta(int8_t *delta_x_ret, int8_t *delta_y_ret)
 {
@@ -41,15 +70,6 @@ void hid_device_mouse_draw_square_next_delta(int8_t *delta_x_ret, int8_t *delta_
         }
     }
 }
-
-const char *hid_device_mouse_string_descriptor[5] = {
-    // array of pointer to string descriptors
-    (char[]){0x09, 0x04}, /*!< support language is english */
-    "TinyUSB",            /*!< manufacturer */
-    "TinyUSB Device",     /*!< product */
-    "123456",             /*!< chip id */
-    "Example HID interface",
-};
 
 const uint8_t hid_device_mouse_report_descriptor[] = {
     HID_USAGE_PAGE(HID_USAGE_PAGE_DESKTOP),     /*!< 选择通用桌面控制 */
@@ -126,4 +146,18 @@ bool hid_device_mouse_send(int x, int y)
 {
     int8_t data[3] = {0x00, x, y};
     return tud_hid_report(HID_ITF_PROTOCOL_NONE, data, sizeof(data));
+}
+
+void hid_device_mouse_demo(void)
+{
+    // Mouse output: Move mouse cursor in square trajectory
+    ESP_LOGI(TAG, "Sending Mouse report");
+    int8_t delta_x = 0;
+    int8_t delta_y = 0;
+    for (int i = 0; i < (DISTANCE_MAX / DELTA_SCALAR) * 4; i++)
+    {
+        hid_device_mouse_draw_square_next_delta(&delta_x, &delta_y);
+        hid_device_mouse_send(delta_x, delta_y);
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
 }
