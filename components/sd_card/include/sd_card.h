@@ -14,4 +14,13 @@ typedef struct
     gpio_num_t cmd;
 } sd_card_config_t;
 
+extern sdmmc_card_t *card;
+
+/**
+ * @brief sd card init
+ *
+ * @param config
+ * @param mount_path
+ * @return esp_err_t
+ */
 esp_err_t sd_card_init(sd_card_config_t config, char *mount_path);
