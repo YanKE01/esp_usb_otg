@@ -111,41 +111,28 @@ void lcd_draw_point(int x, int y)
     esp_lcd_panel_draw_bitmap(lcd_panel, x, y, x + 1, y + 1, &POINT_COLOR);
 }
 
-void LCD_ShowChar(uint8_t x, uint8_t y, uint8_t chr, uint8_t size, uint8_t mode)
-{
-    uint8_t temp, t, t1;
-    uint8_t y0 = y;
-    uint8_t *pfont = 0;
-    /* 得到字体一个字符对应点阵集所占的字节数 */
-    uint8_t csize = (size / 8 + ((size % 8) ? 1 : 0)) * (size / 2);
-    chr = chr - ' '; /* 得到偏移后的值,因为字库是从空格开始存储的,第一个字符是空格 */
-
-    pfont = (uint8_t *)ascii_1608[chr];
-
-    for (t = 0; t < csize; t++)
-    {
-        temp = pfont[t];
-        for (t1 = 0; t1 < 8; t1++)
-        {
-            if (temp & 0x80)
-            {
-                //lcd_draw_point(x, y);
-            }
-            else
-            {
-                lcd_draw_point(x, y);
-            }
-            temp <<= 1;
-            y++;
-            if ((y - y0) == size)
-            {
-                y = y0;
-                x++;
-                break;
-            }
-        }
-    }
-}
+/**
+ * @brief https://www.zhetao.com/fontarray.html
+ * @addindex 高度16，字宽2列，字母A
+ *
+ */
+static const unsigned char bitmap_bytes[] = {
+    0x00, 0x00,
+    0x00, 0x00,
+    0x0e, 0x00,
+    0x1e, 0x00,
+    0x1f, 0x00,
+    0x3f, 0x00,
+    0x3b, 0x00,
+    0x3b, 0x80,
+    0x73, 0x80,
+    0x7f, 0xc0,
+    0x7f, 0xc0,
+    0xe1, 0xc0,
+    0xe0, 0xe0,
+    0xc0, 0xe0,
+    0x00, 0x00,
+    0x00, 0x00};
 
 void app_main(void)
 {
@@ -161,26 +148,41 @@ void app_main(void)
 
     ESP_ERROR_CHECK(lcd_init(lcd_config));
     lcd_fullclean(lcd_panel, lcd_config, rgb565(0, 0, 0));
+    uint16_t buffer[16][2 * 8];
+    memset(buffer, BACK_COLOR, sizeof(buffer));
+    for (int i = 0; i < 16; i++)
+    {
+        for (int j = 0; j < 2; j++)
+        {
+            // 第j列
+            uint8_t temp = bitmap_bytes[i * 2 + j];
+            for (int k = 0; k < 8; k++)
+            {
+                if (temp & 0x80)
+                {
+                    buffer[j * 8 + k][i] = POINT_COLOR;
+                    lcd_draw_point(100 + j * 8 + k, 100 + i);
+                }
+                else
+                {
+                    buffer[j * 8 + k][i] = BACK_COLOR;
+                }
+                temp <<= 1;
+            }
+        }
+    }
 
-    LCD_ShowChar(100, 100, 'a', 16, 1);
-    // uint16_t color[12][6];
-    // for (int i = 0; i < 12; i++)
-    // {
-    //     for (int j = 0; j < 6; j++)
-    //     {
-    //         if (j == 3)
-    //         {
-    //             color[i][j] = swap_hex(rgb565(0, 0, 0));
-    //         }
-    //         else
-    //         {
-    //             color[i][j] = swap_hex(rgb565(255, 255, 255));
-    //         }
-    //     }
-    // }
+    for (int i = 0; i < 16; i++)
+    {
+        for (int j = 0; j < 16; j++)
+        {
+            esp_lcd_panel_draw_bitmap(lcd_panel, 120 + i, 120 + j, 120 + i + 1, 120 + j + 1, &buffer[i][j]);
+        }
+    }
 
-    // for (int i = 0; i < 12; i++)
-    // {
-    //     esp_lcd_panel_draw_bitmap(lcd_panel, 20 + i, 50, 20 + i + 1, 50 + 6 + 1, &color[i]);
-    // }
+    for (int i = 0; i < 16; i++)
+    {
+        esp_lcd_panel_draw_bitmap(lcd_panel, 150 + i, 150, 150 + i + 1, 150 + 16, &buffer[i]);
+    }
+
 }
