@@ -115,32 +115,8 @@ void app_main(void)
     ESP_ERROR_CHECK(gpio_config(&boot_button_config));
 
     ESP_ERROR_CHECK(sd_card_init(sd_card_config, "/data"));
-    ESP_ERROR_CHECK(usb_msc_init(&card));
-
-    // ESP_LOGI(TAG, "USB initialization");
-    // const tinyusb_config_t tusb_cfg = {
-    //     .device_descriptor = &hid_device_audio_ctrl_device_descriptor,
-    //     .string_descriptor = hid_device_audio_ctrl_string_descriptor,
-    //     .string_descriptor_count = sizeof(hid_device_audio_ctrl_string_descriptor) / sizeof(hid_device_audio_ctrl_string_descriptor[0]),
-    //     .external_phy = false,
-    //     .configuration_descriptor = hid_device_audio_ctrl_configuration_descriptor,
-    // };
-
-    // ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
-    // ESP_LOGI(TAG, "USB initialization DONE");
-
-    // while (1)
-    // {
-    //     if (tud_mounted())
-    //     {
-    //         static bool send_hid_data = true;
-    //         if (send_hid_data)
-    //         {
-    //             hid_device_audio_ctrl_test();
-    //             ESP_LOGI(TAG, "Boot0 Set");
-    //         }
-    //         send_hid_data = !gpio_get_level(APP_BUTTON);
-    //     }
-    //     vTaskDelay(pdMS_TO_TICKS(300));
-    // }
+    //ESP_ERROR_CHECK(usb_msc_init(&card));
+    ESP_ERROR_CHECK(lcd_init(lcd_config));
+    ESP_ERROR_CHECK(lvgl_init());
+    ui_init();
 }
