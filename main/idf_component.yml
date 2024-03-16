@@ -1,5 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
+  espressif/esp32-camera: "^2.0.8"
   lvgl/lvgl: "^8.3.10"
   espressif/esp_lvgl_port: "^1.4.0"
   espressif/esp_tinyusb: "^1.4.2~2"

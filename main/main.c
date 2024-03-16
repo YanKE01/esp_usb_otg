@@ -17,13 +17,33 @@
 #include "esp_lvgl_port.h"
 #include "ui.h"
 #include "usb_msc.h"
+#include "camera.h"
 
 #define APP_BUTTON (GPIO_NUM_0) // Use BOOT signal by default
-// #define USE_HID
-
-static const char *TAG = "example";
 lv_disp_t *lvgl_disp = NULL;
 
+#ifdef CONFIG_ESP32_S3_EYE
+static const char *TAG = "ESP_EYE";
+#else
+static const char *TAG ="USB_OTG"
+#endif
+
+#ifdef CONFIG_ESP32_S3_EYE
+lcd_config_t lcd_config = {
+    .spi_host_device = SPI3_HOST,
+    .dc = GPIO_NUM_45,
+    .cs = GPIO_NUM_14,
+    .sclk = GPIO_NUM_21,
+    .mosi = GPIO_NUM_47,
+    .rst = -1,
+    .backlight = GPIO_NUM_48,
+    .lcd_bits_per_pixel = 16,
+    .lcd_color_space = LCD_RGB_ELEMENT_ORDER_RGB,
+    .lcd_height_res = 240,
+    .lcd_vertical_res = 240,
+    .lcd_draw_buffer_height = 50,
+};
+#else
 lcd_config_t lcd_config = {
     .spi_host_device = SPI3_HOST,
     .dc = GPIO_NUM_4,
@@ -31,6 +51,7 @@ lcd_config_t lcd_config = {
     .sclk = GPIO_NUM_6,
     .mosi = GPIO_NUM_7,
     .rst = GPIO_NUM_8,
+    .backlight = GPIO_NUM_9,
     .lcd_bits_per_pixel = 16,
     .lcd_color_space = LCD_RGB_ELEMENT_ORDER_RGB,
     .lcd_height_res = 240,
@@ -46,6 +67,7 @@ sd_card_config_t sd_card_config = {
     .d2 = GPIO_NUM_33,
     .d3 = GPIO_NUM_34,
 };
+#endif
 
 uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance)
 {
@@ -114,9 +136,18 @@ void app_main(void)
     };
     ESP_ERROR_CHECK(gpio_config(&boot_button_config));
 
-    ESP_ERROR_CHECK(sd_card_init(sd_card_config, "/data"));
-    //ESP_ERROR_CHECK(usb_msc_init(&card));
+#ifdef CONFIG_ESP32_S3_EYE
+    ESP_LOGI(TAG, "ESP32 S3 EYE");
+    ESP_ERROR_CHECK(camera_init());
     ESP_ERROR_CHECK(lcd_init(lcd_config));
-    ESP_ERROR_CHECK(lvgl_init());
-    ui_init();
+    while (1)
+    {
+        camera_fb_t *pic = esp_camera_fb_get();
+        esp_lcd_panel_draw_bitmap(lcd_panel, 0, 0, 240 + 1, 240 + 1, pic->buf);
+        esp_camera_fb_return(pic);
+    }
+#else
+    ESP_LOGI(TAG, "ESP32 USB OTG");
+    ESP_ERROR_CHECK(sd_card_init(sd_card_config, "/data"));
+#endif
 }

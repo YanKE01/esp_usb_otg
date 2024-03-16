@@ -1,0 +1,9 @@
+menu "Board Select"
+    config ESP32_S3_USB_OTG
+        bool "ESP32-S3-USB-OTG"
+    
+    config ESP32_S3_EYE
+        bool "ESP32-EYE"
+        depends on !ESP32-S3-USB-OTG
+
+endmenu
